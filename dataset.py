@@ -8,7 +8,7 @@ from torchvision.transforms import Compose
 
 
 
-def partitions(dataset_csv):
+def partitions(dataset_csv,n_partition):
   directory_path='./partitions'
 
   if os.path.exists(directory_path):
@@ -17,7 +17,7 @@ def partitions(dataset_csv):
     os.mkdir(directory_path)
     df = pd.read_csv(dataset_csv)
     # Set the number of partitions
-    N = 5  # Adjust this number as needed
+    N = n_partition  # Adjust this number as needed
     # Split the dataset into N equal partitions
     partitions = np.array_split(df, N)
     # Save each partition to a separate CSV file

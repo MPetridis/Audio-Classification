@@ -7,10 +7,11 @@ from torch.optim import Adam
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score
 def train(l_r=0.001,bs=20,n_e=10):
-  dataset_csv="C:\\Users\\petri\\Downloads\\ESC-50-master\\meta\\esc50.csv"
+  dataset_csv="E:\\ESC-50-master\\meta\\esc50.csv"
   csv_file = "partitions/partition_1.csv"
-  root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
-  partitions(dataset_csv)
+  # root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
+  root_dir = "E:\\ESC-50-master\\audio"
+  partitions(dataset_csv,3)
   dataset = ESC50Dataset(csv_file, root_dir, "train")
   # classifier = SoundClassifier().cuda()
   classifier = SoundClassifier()
@@ -59,7 +60,8 @@ def train(l_r=0.001,bs=20,n_e=10):
 
 def evaluate():
   csv_file = "partitions/partition_2.csv"
-  root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
+  # root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
+  root_dir = "E:\\ESC-50-master\\audio"
   classifier = SoundClassifier()
   classifier.load_state_dict(torch.load("checkpoint", weights_only=True))
   classifier.eval()
