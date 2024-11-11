@@ -1,18 +1,28 @@
 import os
 import pandas as pd
+import numpy as np
 import torchaudio
-import torch
 from torch.utils.data import Dataset
 import torchaudio.transforms as T
 from torchvision.transforms import Compose
-from torch.utils.data import DataLoader
-import torch.nn as nn
-from torch.optim import Adam
-from tqdm.auto import tqdm
-import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score
 
 
+
+def partitions(dataset_csv):
+  directory_path='./partitions'
+
+  if os.path.exists(directory_path):
+    print(f"The directory '{directory_path}' exists.")
+  else:
+    os.mkdir(directory_path)
+    df = pd.read_csv(dataset_csv)
+    # Set the number of partitions
+    N = 5  # Adjust this number as needed
+    # Split the dataset into N equal partitions
+    partitions = np.array_split(df, N)
+    # Save each partition to a separate CSV file
+    for i, partition in enumerate(partitions):
+      partition.to_csv(f"{directory_path}/partition_{i+1}.csv", index=False)
 
 
 
@@ -22,9 +32,12 @@ class ESC50Dataset(Dataset):
     if split == "train":
       self.len = int(df*0.8)
       self.shift = 0
-    else:
+    elif split == "val":
       self.len = int(df*0.2)
       self.shift = int(df*0.8)
+    else:
+      self.len = df
+      self.shift = 0
     self.annotations = pd.read_csv(csv_file)
     self.root_dir = root_dir
     self.transform = Compose([

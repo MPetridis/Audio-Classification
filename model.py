@@ -1,20 +1,5 @@
-import os
-import pandas as pd
-import torchaudio
 import torch
-from torch.utils.data import Dataset
-import torchaudio.transforms as T
-from torchvision.transforms import Compose
-from torch.utils.data import DataLoader
 import torch.nn as nn
-from torch.optim import Adam
-from tqdm.auto import tqdm
-import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score
-
-
-
-
 
 class ResBlock(nn.Module):
   def __init__(self, in_channels, out_channels, stride=1):
