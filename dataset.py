@@ -26,9 +26,10 @@ def partitions(dataset_csv,n_partition):
 
 
 
-class ESC50Dataset(Dataset):
+class Dataset_prep(Dataset):
   def __init__(self, csv_file, root_dir, split="train"):
     df=len(pd.read_csv(csv_file))
+    
     if split == "train":
       self.len = int(df*0.8)
       self.shift = 0
@@ -40,6 +41,7 @@ class ESC50Dataset(Dataset):
       self.shift = 0
     self.annotations = pd.read_csv(csv_file)
     self.root_dir = root_dir
+    self.label_mapping = {label: idx for idx, label in enumerate(self.annotations['label'].unique())}
     self.transform = Compose([
       T.MelSpectrogram(sample_rate=44100, n_fft=1024, hop_length=512, n_mels=64),
       T.AmplitudeToDB()
@@ -51,8 +53,8 @@ class ESC50Dataset(Dataset):
   def __getitem__(self, index):
     index = self.shift + index
     audio_path = os.path.join(self.root_dir, self.annotations.iloc[index, 0])
-    label = self.annotations.iloc[index, 2]
-
+    label_str = self.annotations.iloc[index, 1]
+    label = self.label_mapping[label_str]
     waveform, sample_rate = torchaudio.load(audio_path)
     waveform = self.transform(waveform)
     

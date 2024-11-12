@@ -46,7 +46,7 @@ class SoundClassifier(nn.Module):
         ResBlock(64, 128, 2)
         )
     self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-    self.fc = nn.Linear(128, 50)
+    self.fc = nn.Linear(128, 41)
     self.relu = nn.ReLU()
 
   def forward(self, x):

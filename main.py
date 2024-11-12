@@ -1,4 +1,4 @@
-from dataset import ESC50Dataset,partitions
+from dataset import Dataset_prep,partitions
 from model import SoundClassifier
 import torch
 from torch.utils.data import DataLoader
@@ -6,13 +6,37 @@ import torch.nn as nn
 from torch.optim import Adam
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score
+from torch.nn.utils.rnn import pad_sequence
+from tqdm import tqdm
+def collate_fn(batch):
+    # Separate the inputs and labels
+    inputs, labels = zip(*batch)
+
+    # Find the maximum width and height in the batch
+    max_height = max([input.size(1) for input in inputs])
+    max_width = max([input.size(2) for input in inputs])
+
+    # Pad each tensor to the maximum width and height
+    padded_inputs = []
+    for input in inputs:
+        pad_height = max_height - input.size(1)
+        pad_width = max_width - input.size(2)
+        padded_input = torch.nn.functional.pad(input, (0, pad_width, 0, pad_height))
+        padded_inputs.append(padded_input)
+
+    # Stack the padded inputs and convert labels to tensor
+    inputs = torch.stack(padded_inputs)
+    labels = torch.tensor(labels)
+
+    return inputs, labels
+
 def train(l_r=0.001,bs=20,n_e=10):
-  dataset_csv="E:\\ESC-50-master\\meta\\esc50.csv"
+  dataset_csv="train_post_competition.csv"
   csv_file = "partitions/partition_1.csv"
   # root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
-  root_dir = "E:\\ESC-50-master\\audio"
+  root_dir = "E:\\FSDKaggle2018.audio_train"
   partitions(dataset_csv,3)
-  dataset = ESC50Dataset(csv_file, root_dir, "train")
+  dataset = Dataset_prep(csv_file, root_dir, "train")
   # classifier = SoundClassifier().cuda()
   classifier = SoundClassifier()
   criterion = nn.BCEWithLogitsLoss()
@@ -21,9 +45,9 @@ def train(l_r=0.001,bs=20,n_e=10):
   lr = l_r
   batch_size = bs
   optimizer = Adam(classifier.parameters(), lr=lr)
-  dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-  dataset_val = ESC50Dataset(csv_file, root_dir, split="val")
-  dataloader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False)
+  dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True,collate_fn=collate_fn)
+  dataset_val = Dataset_prep(csv_file, root_dir, split="val")
+  dataloader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False,collate_fn=collate_fn)
   n_epoch = n_e
   classifier.train()
   train_losses = []
@@ -33,12 +57,12 @@ def train(l_r=0.001,bs=20,n_e=10):
 
   classifier.train()
 
-  for epoch in range(n_epoch):
-    for inputs, labels in dataloader:
+  for epoch in tqdm(range(n_epoch)):
+    for inputs, labels in tqdm(dataloader,desc=f"EPOCH {epoch+1}"):
       optimizer.zero_grad()
 
       # labels = nn.functional.one_hot(labels, num_classes=50).float().cuda()
-      labels = nn.functional.one_hot(labels, num_classes=50).float()
+      labels = nn.functional.one_hot(labels, num_classes=41).float()
       # inputs = inputs.cuda()
       inputs = inputs
 
@@ -65,7 +89,7 @@ def evaluate():
   classifier = SoundClassifier()
   classifier.load_state_dict(torch.load("checkpoint", weights_only=True))
   classifier.eval()
-  dataloader = DataLoader(ESC50Dataset(csv_file, root_dir, "t"))
+  dataloader = DataLoader(Dataset_prep(csv_file, root_dir, "t",collate_fn=collate_fn))
   correct = 0
   total = 0
   # since we're not training, we don't need to calculate the gradients for our outputs
@@ -125,7 +149,7 @@ def get_val_loss(dataloader_val,classifier,criterion):
     n = 0
     for inputs, labels in dataloader_val:
         # labels = nn.functional.one_hot(labels, num_classes=50).float().cuda()
-        labels = nn.functional.one_hot(labels, num_classes=50).float()
+        labels = nn.functional.one_hot(labels, num_classes=41).float()
         # inputs = inputs.cuda()
         inputs = inputs
 
@@ -137,4 +161,4 @@ def get_val_loss(dataloader_val,classifier,criterion):
 
 
 if __name__=="__main__":
-  evaluate()
+  train(bs=80)
