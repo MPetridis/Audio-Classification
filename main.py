@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score
 from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
+from sklearn.metrics import classification_report
 def collate_fn(batch):
     # Separate the inputs and labels
     inputs, labels = zip(*batch)
@@ -79,8 +80,26 @@ def train(l_r=0.001,bs=20,n_e=10):
     train_accuracies.append(calculate_accuracy(dataloader,classifier))
     val_accuracies.append(calculate_accuracy(dataloader_val,classifier))
 
+  print_report(dataloader_val,classifier)
+
   torch.save(classifier.state_dict(), "./checkpoint")
   save_fig(train_losses,val_losses,train_accuracies,val_accuracies)
+
+@torch.no_grad
+def print_report(dataloader,classifier):
+  all_pred=[]
+  all_true=[]
+  for data in dataloader:
+    images, labels = data
+    # calculate outputs by running images through the network
+    outputs = classifier(images)
+    # the class with the highest energy is what we choose as prediction
+    _, predicted = torch.max(outputs.data, 1)
+    all_pred.append(predicted)
+    all_true.append(labels)
+  print(classification_report(all_true,all_pred))
+    
+
 
 def evaluate():
   csv_file = "partitions/partition_2.csv"
@@ -141,6 +160,7 @@ def calculate_accuracy(dataloader,classifier):
         all_labels.extend(labels.cpu().numpy())
 
     # Calculate accuracy
+    accuracy = accuracy_score(all_labels, all_preds)
     accuracy = accuracy_score(all_labels, all_preds)
     return accuracy
 @torch.no_grad
