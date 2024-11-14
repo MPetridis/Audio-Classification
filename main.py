@@ -35,7 +35,7 @@ def train(l_r=0.001,bs=20,n_e=10):
   dataset_csv="train_post_competition.csv"
   csv_file = "partitions/partition_1.csv"
   # root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
-  root_dir = "E:\\FSDKaggle2018.audio_train"
+  root_dir = "C:\\Users\Minas Petridis\\Desktop\\FSDKaggle2018.audio_train"
   partitions(dataset_csv,3)
   dataset = Dataset_prep(csv_file, root_dir, "train")
   # classifier = SoundClassifier().cuda()
@@ -59,7 +59,7 @@ def train(l_r=0.001,bs=20,n_e=10):
   classifier.train()
 
   for epoch in tqdm(range(n_epoch)):
-    for inputs, labels in tqdm(dataloader,desc=f"EPOCH {epoch+1}"):
+    for inputs, labels in dataloader:
       optimizer.zero_grad()
 
       # labels = nn.functional.one_hot(labels, num_classes=50).float().cuda()
@@ -73,15 +73,17 @@ def train(l_r=0.001,bs=20,n_e=10):
 
       loss.backward()
       optimizer.step()
-    print(f"EPOCH {epoch+1} | Loss: {loss.detach().item():.4f}")
+    # print(f"EPOCH {epoch+1} | Loss: {loss.detach().item():.4f}")
     
     train_losses.append(loss.detach().item())
     val_losses.append(get_val_loss(dataloader_val,classifier,criterion))
     train_accuracies.append(calculate_accuracy(dataloader,classifier))
     val_accuracies.append(calculate_accuracy(dataloader_val,classifier))
 
-  print_report(dataloader_val,classifier)
-
+  try:
+    print_report(dataloader_val,classifier)
+  except Exception as e:
+     print(e)
   torch.save(classifier.state_dict(), "./checkpoint")
   save_fig(train_losses,val_losses,train_accuracies,val_accuracies)
 
@@ -97,6 +99,9 @@ def print_report(dataloader,classifier):
     _, predicted = torch.max(outputs.data, 1)
     all_pred.append(predicted)
     all_true.append(labels)
+    all_pred = torch.cat(all_pred).cpu().numpy()
+    all_true = torch.cat(all_true).cpu().numpy()
+    
   print(classification_report(all_true,all_pred))
     
 
@@ -181,4 +186,5 @@ def get_val_loss(dataloader_val,classifier,criterion):
 
 
 if __name__=="__main__":
-  train(bs=80)
+  # train(bs=80)
+  evaluate()
