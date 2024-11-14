@@ -35,7 +35,7 @@ def train(l_r=0.001,bs=20,n_e=10):
   dataset_csv="train_post_competition.csv"
   csv_file = "partitions/partition_1.csv"
   # root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
-  root_dir = "C:\\Users\Minas Petridis\\Desktop\\FSDKaggle2018.audio_train"
+  root_dir = "E:\\FSDKaggle2018.audio_train"
   partitions(dataset_csv,3)
   dataset = Dataset_prep(csv_file, root_dir, "train")
   # classifier = SoundClassifier().cuda()
@@ -97,10 +97,8 @@ def print_report(dataloader,classifier):
     outputs = classifier(images)
     # the class with the highest energy is what we choose as prediction
     _, predicted = torch.max(outputs.data, 1)
-    all_pred.append(predicted)
-    all_true.append(labels)
-    all_pred = torch.cat(all_pred).cpu().numpy()
-    all_true = torch.cat(all_true).cpu().numpy()
+    all_pred.extend(predicted.cpu().numpy())
+    all_true.extend(labels.cpu().numpy())
     
   print(classification_report(all_true,all_pred))
     
@@ -109,7 +107,7 @@ def print_report(dataloader,classifier):
 def evaluate():
   csv_file = "partitions/partition_2.csv"
   # root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
-  root_dir = "E:\\ESC-50-master\\audio"
+  root_dir = "E:\\FSDKaggle2018.audio_train"
   classifier = SoundClassifier()
   classifier.load_state_dict(torch.load("checkpoint", weights_only=True))
   classifier.eval()
@@ -124,7 +122,7 @@ def evaluate():
       # calculate outputs by running images through the network
       outputs = classifier(images)
       # the class with the highest energy is what we choose as prediction
-      _, predicted = torch.max(outputs.data, 1)
+      _, predicted = torch.max(outputs, 1)
       total += labels.size(0)
       correct += (predicted == labels).sum().item()
 
@@ -186,5 +184,5 @@ def get_val_loss(dataloader_val,classifier,criterion):
 
 
 if __name__=="__main__":
-  # train(bs=80)
-  evaluate()
+  train(bs=80)
+  # evaluate()

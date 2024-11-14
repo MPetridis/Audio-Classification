@@ -1,3 +1,4 @@
 env/
 venv/
 partitions/
+__pycache__/
