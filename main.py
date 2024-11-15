@@ -31,11 +31,12 @@ def collate_fn(batch):
 
     return inputs, labels
 
-def train(l_r=0.001,bs=20,n_e=10):
+def train(l_r=0.001,bs=20,n_e=10,device="cuda"):
+  
   dataset_csv="train_post_competition.csv"
   csv_file = "partitions/partition_1.csv"
   # root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
-  root_dir = "E:\\FSDKaggle2018.audio_train"
+  root_dir = "/home/mlearning/audio/FSDKaggle2018.audio_train"
   partitions(dataset_csv,3)
   dataset = Dataset_prep(csv_file, root_dir, "train")
   # classifier = SoundClassifier().cuda()
@@ -50,53 +51,55 @@ def train(l_r=0.001,bs=20,n_e=10):
   dataset_val = Dataset_prep(csv_file, root_dir, split="val")
   dataloader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False,collate_fn=collate_fn)
   n_epoch = n_e
-  classifier.train()
+  # classifier.train()
   train_losses = []
   val_losses = []
   train_accuracies = []
   val_accuracies = []
-
+  classifier = classifier.to(device)
   classifier.train()
 
   for epoch in tqdm(range(n_epoch)):
+    classifier.train()
     for inputs, labels in dataloader:
       optimizer.zero_grad()
 
-      # labels = nn.functional.one_hot(labels, num_classes=50).float().cuda()
-      labels = nn.functional.one_hot(labels, num_classes=41).float()
-      # inputs = inputs.cuda()
-      inputs = inputs
+      labels = nn.functional.one_hot(labels, num_classes=41).float().to(device)
+      # labels = nn.functional.one_hot(labels, num_classes=41).float()
+      inputs = inputs.to(device)
+      # inputs = inputs
 
       outputs = classifier(inputs)
       loss = criterion(outputs, labels)
-
 
       loss.backward()
       optimizer.step()
     # print(f"EPOCH {epoch+1} | Loss: {loss.detach().item():.4f}")
     
     train_losses.append(loss.detach().item())
-    val_losses.append(get_val_loss(dataloader_val,classifier,criterion))
-    train_accuracies.append(calculate_accuracy(dataloader,classifier))
-    val_accuracies.append(calculate_accuracy(dataloader_val,classifier))
+    val_losses.append(get_val_loss(dataloader_val,classifier,criterion,device))
+    train_accuracies.append(calculate_accuracy(dataloader,classifier,device))
+    val_accuracies.append(calculate_accuracy(dataloader_val,classifier,device))
 
   try:
-    print_report(dataloader_val,classifier)
+    print_report(dataloader_val,classifier,device)
   except Exception as e:
      print(e)
   torch.save(classifier.state_dict(), "./checkpoint")
   save_fig(train_losses,val_losses,train_accuracies,val_accuracies)
 
 @torch.no_grad
-def print_report(dataloader,classifier):
+def print_report(dataloader,classifier,device):
   all_pred=[]
   all_true=[]
+  classifier.eval()
   for data in dataloader:
     images, labels = data
+    images=images.to(device)
     # calculate outputs by running images through the network
     outputs = classifier(images)
     # the class with the highest energy is what we choose as prediction
-    _, predicted = torch.max(outputs.data, 1)
+    _, predicted = torch.max(outputs, 1)
     all_pred.extend(predicted.cpu().numpy())
     all_true.extend(labels.cpu().numpy())
     
@@ -104,12 +107,13 @@ def print_report(dataloader,classifier):
     
 
 
-def evaluate():
+def evaluate(device):
   csv_file = "partitions/partition_2.csv"
   # root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
-  root_dir = "E:\\FSDKaggle2018.audio_train"
+  root_dir = "/home/mlearning/audio/FSDKaggle2018.audio_train"
   classifier = SoundClassifier()
   classifier.load_state_dict(torch.load("checkpoint", weights_only=True))
+  classifier=classifier.to(device)
   classifier.eval()
   dataloader = DataLoader(Dataset_prep(csv_file, root_dir, "t",collate_fn=collate_fn))
   correct = 0
@@ -120,6 +124,7 @@ def evaluate():
     for data in dataloader:
       images, labels = data
       # calculate outputs by running images through the network
+      images=images.to(device)
       outputs = classifier(images)
       # the class with the highest energy is what we choose as prediction
       _, predicted = torch.max(outputs, 1)
@@ -149,14 +154,14 @@ def save_fig(train_losses,val_losses,train_accuracies,val_accuracies):
   fig.savefig("./progress.png")
 
 @torch.no_grad
-def calculate_accuracy(dataloader,classifier):
+def calculate_accuracy(dataloader,classifier,device):
     # Evaluation
     all_preds = []
     all_labels = []
-
+    classifier.eval()
     for inputs, labels in dataloader:
-        # inputs = inputs.cuda()
-        inputs = inputs
+        inputs = inputs.to(device)
+        # inputs = inputs
         outputs = classifier(inputs)
         _, predicted = torch.max(outputs, 1)
         all_preds.extend(predicted.cpu().numpy())
@@ -167,14 +172,15 @@ def calculate_accuracy(dataloader,classifier):
     accuracy = accuracy_score(all_labels, all_preds)
     return accuracy
 @torch.no_grad
-def get_val_loss(dataloader_val,classifier,criterion):
+def get_val_loss(dataloader_val,classifier,criterion,device):
+    classifier.eval()
     val_loss = 0
     n = 0
     for inputs, labels in dataloader_val:
-        # labels = nn.functional.one_hot(labels, num_classes=50).float().cuda()
-        labels = nn.functional.one_hot(labels, num_classes=41).float()
-        # inputs = inputs.cuda()
-        inputs = inputs
+        labels = nn.functional.one_hot(labels, num_classes=41).float().to(device)
+        # labels = nn.functional.one_hot(labels, num_classes=41).float()
+        inputs = inputs.to(device)
+        # inputs = inputs
 
         outputs = classifier(inputs)
         val_loss += criterion(outputs, labels)
@@ -184,5 +190,6 @@ def get_val_loss(dataloader_val,classifier,criterion):
 
 
 if __name__=="__main__":
-  train(bs=80)
+  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  train(bs=300,n_e=100,device=device)
   # evaluate()
