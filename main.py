@@ -107,31 +107,32 @@ def print_report(dataloader,classifier,device):
     
 
 
-def evaluate(device):
-  csv_file = "partitions/partition_2.csv"
+def evaluate(device,csv_file):
+  # csv_file = "partitions/partition_2.csv"
   # root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
-  root_dir = "/home/mlearning/audio/FSDKaggle2018.audio_train"
+  root_dir = "E:\\FSDKaggle2018.audio_train"
   classifier = SoundClassifier()
-  classifier.load_state_dict(torch.load("checkpoint", weights_only=True))
+  classifier.load_state_dict(torch.load("checkpoint", weights_only=True,map_location=device))
   classifier=classifier.to(device)
   classifier.eval()
-  dataloader = DataLoader(Dataset_prep(csv_file, root_dir, "t",collate_fn=collate_fn))
-  correct = 0
-  total = 0
+  dataloader = DataLoader(Dataset_prep(csv_file, root_dir, "t"), collate_fn=collate_fn)
+
+  # correct = 0
+  # total = 0
   # since we're not training, we don't need to calculate the gradients for our outputs
+  print_report(dataloader,classifier,device)
+  # with torch.no_grad():
+  #   for data in dataloader:
+  #     images, labels = data
+  #     # calculate outputs by running images through the network
+  #     images=images.to(device)
+  #     outputs = classifier(images)
+  #     # the class with the highest energy is what we choose as prediction
+  #     _, predicted = torch.max(outputs, 1)
+  #     total += labels.size(0)
+  #     correct += (predicted == labels).sum().item()
 
-  with torch.no_grad():
-    for data in dataloader:
-      images, labels = data
-      # calculate outputs by running images through the network
-      images=images.to(device)
-      outputs = classifier(images)
-      # the class with the highest energy is what we choose as prediction
-      _, predicted = torch.max(outputs, 1)
-      total += labels.size(0)
-      correct += (predicted == labels).sum().item()
-
-  print(f'Accuracy of the network on the {total} test audio: {100 * correct // total} %')
+  # print(f'Accuracy of the network on the {total} test audio: {100 * correct // total} %')
 
 
 def save_fig(train_losses,val_losses,train_accuracies,val_accuracies):
@@ -191,5 +192,6 @@ def get_val_loss(dataloader_val,classifier,criterion,device):
 
 if __name__=="__main__":
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  train(bs=300,n_e=100,device=device)
-  # evaluate()
+  # train(bs=300,n_e=100,device=device)
+  for i in range(3):
+    evaluate(device,f"partitions/partition_{i+1}.csv")

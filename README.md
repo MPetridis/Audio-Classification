@@ -10,4 +10,4 @@ in `main.py`
 
 if `./partitions` exist and has no csv files in it delete the dir and run `main.py` after
 
-### Require Python 3.11
+### Requires Python 3.11
