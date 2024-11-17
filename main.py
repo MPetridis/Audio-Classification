@@ -1,6 +1,7 @@
 from dataset import Dataset_prep,partitions
 from model import SoundClassifier
 import torch
+from sklearn.decomposition import PCA
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from torch.optim import Adam
@@ -9,6 +10,9 @@ from sklearn.metrics import accuracy_score
 from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
 from sklearn.metrics import classification_report
+from frouros.detectors.data_drift import KSTest,EMD
+
+
 def collate_fn(batch):
     # Separate the inputs and labels
     inputs, labels = zip(*batch)
@@ -189,9 +193,100 @@ def get_val_loss(dataloader_val,classifier,criterion,device):
     return (val_loss/n).detach().item()
 
 
+def fn():
+  dataset_csv="train_post_competition.csv"
+  csv_file = "partitions/partition_1.csv"
+  # root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
+  root_dir = "E:\\FSDKaggle2018.audio_train"
+  partitions(dataset_csv,3)
+  dataset = Dataset_prep(csv_file, root_dir, "train")
+  # classifier = SoundClassifier().cuda()
+  classifier = SoundClassifier()
+  dataloader = DataLoader(dataset, batch_size=180, shuffle=True,collate_fn=collate_fn)
+  print(classifier)
+  print(dataloader)
+  train_features, train_labels = next(iter(dataloader))
+  print(f"Feature batch shape: {train_features.shape}")
+  print(f"Labels batch shape: {train_labels}")
+  img = train_features[0].squeeze()
+  label = train_labels[0]
+  plt.imshow(img, cmap="viridis")
+  plt.show()
+  print(f"Label: {label}")
+  # for inputs, labels in dataloader:
+  #       print(f"Inputs shape: {inputs.shape}")
+  #       print(f"Labels shape: {labels.shape}")
+  #       break  # Only inspect the first batch
+
+def data_drift_detect_kmt(csv_file1, csv_file2):
+  root_dir = "E:\\FSDKaggle2018.audio_train"
+  
+  # Load datasets
+  dataset1 = Dataset_prep(csv_file1, root_dir, "t")
+  dataset2 = Dataset_prep(csv_file2, root_dir, "t")
+  
+
+  data1 = preprocess_data(dataset1)  # Adjust length as needed
+  data2 = preprocess_data(dataset2)
+  # Drift detection using KSTest
+  # pca = PCA(n_components=50)
+  # data1 = pca.fit_transform(data1)
+  # data2 = pca.fit_transform(data2)
+  detector = KSTest()
+  dd=[]
+  for index,wf in enumerate(data1):
+    _=detector.fit(X=wf)
+    drift_score,_ = detector.compare(X=data2[index])[0]
+    dd.append(drift_score)
+  
+  return sum(dd)/len(dd)
+
+def data_drift_detect_emd(csv_file1, csv_file2):
+  root_dir = "E:\\FSDKaggle2018.audio_train"
+  
+  # Load datasets
+  dataset1 = Dataset_prep(csv_file1, root_dir, "t")
+  dataset2 = Dataset_prep(csv_file2, root_dir, "t")
+  
+
+  data1 = preprocess_data(dataset1)  # Adjust length as needed
+  data2 = preprocess_data(dataset2)
+  # Drift detection using KSTest
+  # pca = PCA(n_components=50)
+  # data1 = pca.fit_transform(data1)
+  # data2 = pca.fit_transform(data2)
+  detector = EMD()
+  dd=[]
+  for index,wf in enumerate(data1):
+    _=detector.fit(X=wf)
+    drift_score= detector.compare(X=data2[index])[0]
+    dd.append(drift_score)
+  
+  return sum(dd)/len(dd)
+
+def preprocess_data(dataset):
+  max_height = max([waveform.size(1) for waveform, _ in dataset])
+  max_width = max([waveform.size(2) for waveform, _ in dataset])
+
+  padded_data=[]
+  for waveform, _  in dataset:
+      pad_height = max_height - waveform.size(1)
+      pad_width = max_width - waveform.size(2)
+      padded_waveform = torch.nn.functional.pad(waveform, (0, pad_width, 0, pad_height))
+      padded_data.append(padded_waveform.flatten().numpy())
+      # Flatten the padded waveform and append to processed_data
+  pca = PCA(n_components=60)
+  reduced_data = pca.fit_transform(padded_data)
+  # reduced_data=padded_data
+  return reduced_data
+
+
 
 if __name__=="__main__":
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   # train(bs=300,n_e=100,device=device)
-  for i in range(3):
-    evaluate(device,f"partitions/partition_{i+1}.csv")
+  # for i in range(3):
+  #   evaluate(device,f"partitions/partition_{i+1}.csv")
+  # fn()
+  # print(data_drift_detect_kmt("partitions/partition_1.csv","partitions/partition_2.csv"))
+  print(data_drift_detect_emd("partitions/partition_1.csv","partitions/partition_2.csv"))
