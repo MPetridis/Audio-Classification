@@ -260,7 +260,7 @@ def data_drift_detect_emd(csv_file1, csv_file2):
   for index,wf in enumerate(data1):
     _=detector.fit(X=wf)
     drift_score= detector.compare(X=data2[index])[0]
-    dd.append(drift_score)
+    dd.append(drift_score.distance)
   
   return sum(dd)/len(dd)
 
