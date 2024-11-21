@@ -91,7 +91,7 @@ def train(l_r=0.001,bs=20,n_e=10,device="cuda"):
   except Exception as e:
      print(e)
   torch.save(classifier.state_dict(), "./checkpoint")
-  save_fig(train_losses,val_losses,train_accuracies,val_accuracies)
+  save_fig("progress",train_losses,val_losses,train_accuracies,val_accuracies)
 
 @torch.no_grad
 def print_report(dataloader,classifier,device):
@@ -137,7 +137,7 @@ def evaluate(device,csv_file):
 
   # print(f'Accuracy of the network on the {total} test audio: {100 * correct // total} %')
 
-def save_fig(train_losses,val_losses,train_accuracies,val_accuracies):
+def save_fig(name,train_losses,val_losses,train_accuracies,val_accuracies):
   fig, ax = plt.subplots(1, 2, figsize=(14, 4))
   ax[0].set_title("Losses")
   ax[0].set_xlabel("Epoch")
@@ -154,7 +154,7 @@ def save_fig(train_losses,val_losses,train_accuracies,val_accuracies):
   ax[1].plot(val_accuracies, c="green", label="Validation Accuracy")
   ax[1].legend()
   ax[1].grid()
-  fig.savefig("./progress.png")
+  fig.savefig(f"./{name}.png")
 
 @torch.no_grad
 def calculate_accuracy(dataloader,classifier,device):
