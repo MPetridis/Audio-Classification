@@ -66,6 +66,7 @@ def train(l_r=0.001,bs=20,n_e=10,device="cuda"):
   for epoch in tqdm(range(n_epoch)):
     classifier.train()
     for inputs, labels in dataloader:
+      
       optimizer.zero_grad()
 
       labels = nn.functional.one_hot(labels, num_classes=41).float().to(device)
@@ -109,8 +110,6 @@ def print_report(dataloader,classifier,device):
     
   print(classification_report(all_true,all_pred))
     
-
-
 def evaluate(device,csv_file):
   # csv_file = "partitions/partition_2.csv"
   # root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
@@ -137,7 +136,6 @@ def evaluate(device,csv_file):
   #     correct += (predicted == labels).sum().item()
 
   # print(f'Accuracy of the network on the {total} test audio: {100 * correct // total} %')
-
 
 def save_fig(train_losses,val_losses,train_accuracies,val_accuracies):
   fig, ax = plt.subplots(1, 2, figsize=(14, 4))
@@ -176,6 +174,7 @@ def calculate_accuracy(dataloader,classifier,device):
     accuracy = accuracy_score(all_labels, all_preds)
     accuracy = accuracy_score(all_labels, all_preds)
     return accuracy
+
 @torch.no_grad
 def get_val_loss(dataloader_val,classifier,criterion,device):
     classifier.eval()
@@ -191,7 +190,6 @@ def get_val_loss(dataloader_val,classifier,criterion,device):
         val_loss += criterion(outputs, labels)
         n += 1
     return (val_loss/n).detach().item()
-
 
 def fn():
   dataset_csv="train_post_competition.csv"
@@ -287,6 +285,6 @@ if __name__=="__main__":
   # train(bs=300,n_e=100,device=device)
   # for i in range(3):
   #   evaluate(device,f"partitions/partition_{i+1}.csv")
-  # fn()
+  fn()
   # print(data_drift_detect_kmt("partitions/partition_1.csv","partitions/partition_2.csv"))
-  print(data_drift_detect_emd("partitions/partition_1.csv","partitions/partition_2.csv"))
+  # print(data_drift_detect_emd("partitions/partition_1.csv","partitions/partition_2.csv"))
