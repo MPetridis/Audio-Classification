@@ -93,7 +93,8 @@ def train(l_r=0.001,bs=20,n_e=10,device="cuda"):
   torch.save(classifier.state_dict(), "./checkpoint")
   save_fig("progress",train_losses,val_losses,train_accuracies,val_accuracies)
 
-@torch.no_grad
+
+@torch.no_grad()
 def print_report(dataloader,classifier,device):
   all_pred=[]
   all_true=[]
@@ -156,7 +157,7 @@ def save_fig(name,train_losses,val_losses,train_accuracies,val_accuracies):
   ax[1].grid()
   fig.savefig(f"./{name}.png")
 
-@torch.no_grad
+@torch.no_grad()
 def calculate_accuracy(dataloader,classifier,device):
     # Evaluation
     all_preds = []
@@ -175,7 +176,7 @@ def calculate_accuracy(dataloader,classifier,device):
     accuracy = accuracy_score(all_labels, all_preds)
     return accuracy
 
-@torch.no_grad
+@torch.no_grad()
 def get_val_loss(dataloader_val,classifier,criterion,device):
     classifier.eval()
     val_loss = 0
@@ -195,7 +196,7 @@ def fn():
   dataset_csv="train_post_competition.csv"
   csv_file = "partitions/partition_1.csv"
   # root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
-  root_dir = "E:\\FSDKaggle2018.audio_train"
+  root_dir = "E:\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
   partitions(dataset_csv,3)
   dataset = Dataset_prep(csv_file, root_dir, "train")
   # classifier = SoundClassifier().cuda()

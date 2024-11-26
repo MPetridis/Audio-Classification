@@ -61,33 +61,25 @@ class SoundClassifier(nn.Module):
   
 
 
-class MLP(nn.Module):
-    def __init__(self, num_classes=41):
-        super(MLP, self).__init__()
-        self.fc1 = nn.Linear(64 * 1024, 512)  # Flatten the input size
-        self.fc2 = nn.Linear(512, 256)
-        self.fc3 = nn.Linear(256, num_classes)
-        
-    def forward(self, x):
-        x = x.view(x.size(0), -1)  # Flatten the tensor to [batch_size, 64*1024]
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        x = self.fc3(x)
-        
-        return x
 # class MLP(nn.Module):
-#     def __init__(self, input_dim, hidden_dim, output_dim):
+#     def __init__(self, num_classes=41):
 #         super(MLP, self).__init__()
-#         self.bn1 = nn.BatchNorm2d(16)
-#         self.fc1 = nn.Linear(16, 64)
-#         self.fc2 = nn.Linear(64, 120)
-#         self.fc2 = nn.Linear(120, 60)
-#         self.fc3 = nn.Linear(60, 41)
-#         self.relu = nn.ReLU()
-#         self.softmax = nn.Softmax(dim=1)
-
+#         self.fc1 = nn.Linear(64 * 2442, 512)  # Flatten the input size
+#         self.fc2 = nn.Linear(512, 256)
+#         self.fc3 = nn.Linear(256, num_classes)
+        
 #     def forward(self, x):
-#         x = self.relu(self.fc1(x))
-#         x = self.relu(self.fc2(x))
+#         x = x.view(x.size(0), -1)  # Flatten the tensor to [batch_size, 64*1024]
+#         x = torch.relu(self.fc1(x))
+#         x = torch.relu(self.fc2(x))
 #         x = self.fc3(x)
-#         return self.softmax(x)
+        
+#         return x
+class MLP(nn.Module):
+  def __init__(self):
+    super(MLP, self).__init__()
+    self.linear = nn.Linear(64 * 2442, 41)
+  def forward(self, x):
+    x = x.view(x.size(0), -1)  # x.size(0) is the batch size
+    out = self.linear(x)
+    return out
