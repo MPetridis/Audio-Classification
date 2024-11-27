@@ -116,7 +116,7 @@ def get_val_loss(dataloader_val,classifier,criterion,device):
     return (val_loss/n).detach().item()
 
 def evaluate(device,csv_file):
-  root_dir = "E:\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
+  root_dir = "C:\\Users\\Minas Petridis\\Desktop\\FSDKaggle2018.audio_train"
   classifier = MLP()
   classifier.load_state_dict(torch.load("checkpoint_MLP", weights_only=True,map_location=device))
   classifier=classifier.to(device)
@@ -140,11 +140,27 @@ def evaluate(device,csv_file):
 
   # print(f'Accuracy of the network on the {total} test audio: {100 * correct // total} %')
 
+def extract_feat():
+  classifier = MLP()
+  classifier.load_state_dict(torch.load("checkpoint_MLP", weights_only=True,map_location=device))
+  classifier=classifier.to(device)
+  classifier.eval()
+  print(classifier)
+  # for name, para in classifier.named_parameters():
+  #   print('{}: {}'.format(name, para.shape))
+
+
+
 if __name__ =="__main__":
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    # print(device)
+  # print(device)
 
-  train(30,180)
+  # train(30,180)
+
   # for i in range(3):
   #   evaluate(device,f"partitions/partition_{i+1}.csv")
+
+
+  extract_feat()
+
 

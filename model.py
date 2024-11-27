@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+import math
 
 class ResBlock(nn.Module):
   def __init__(self, in_channels, out_channels, stride=1):
@@ -78,8 +80,56 @@ class SoundClassifier(nn.Module):
 class MLP(nn.Module):
   def __init__(self):
     super(MLP, self).__init__()
-    self.linear = nn.Linear(64 * 2442, 41)
+    # First fully connected layer
+    self.fc1 = nn.Linear(64 * 2442, 512)
+    # Activation function
+    self.relu = nn.ReLU()
+    # Second fully connected layer (output layer)
+    self.fc2 = nn.Linear(512, 41)
+
   def forward(self, x):
-    x = x.view(x.size(0), -1)  # x.size(0) is the batch size
-    out = self.linear(x)
+    x = x.view(x.size(0), -1)  # Flatten input
+    x = self.fc1(x)            # Apply first fully connected layer
+    x = self.relu(x)           # Apply activation
+    out = self.fc2(x)          # Apply second fully connected layer
     return out
+  
+
+class SelfAttention(nn.Module):
+    def __init__(self, d, d_q, d_k, d_v):
+        super(SelfAttention, self).__init__()
+        self.d = d
+        self.d_q = d_q
+        self.d_k = d_k
+        self.d_v = d_v
+        self.W_query = nn.Parameter(torch.rand(d, d_q))
+        self.W_key = nn.Parameter(torch.rand(d, d_k))
+        self.W_value = nn.Parameter(torch.rand(d, d_v))
+    def forward(self, x):
+        Q = x @ self.W_query
+        K = x @ self.W_key
+        V = x @ self.W_value
+        attention_scores = Q @ K.T / math.sqrt(self.d_k)
+        attention_weights = F.softmax(attention_scores, dim=-1)
+        context_vector = attention_weights @ V
+        return context_vector
+
+
+# class SelfAttention(nn.Module):
+#     def __init__(self, d, d_q, d_k, d_v):
+#         super(SelfAttention, self).__init__()
+#         self.d = d
+#         self.d_q = d_q
+#         self.d_k = d_k
+#         self.d_v = d_v
+#         self.W_query = nn.Parameter(torch.rand(d, d_q))
+#         self.W_key = nn.Parameter(torch.rand(d, d_k))
+#         self.W_value = nn.Parameter(torch.rand(d, d_v))
+#     def forward(self, x):
+#         Q = x @ self.W_query
+#         K = x @ self.W_key
+#         V = x @ self.W_value
+#         attention_scores = Q @ K.T / math.sqrt(self.d_k)
+#         attention_weights = F.softmax(attention_scores, dim=-1)
+#         context_vector = attention_weights @ V
+#         return context_vector
