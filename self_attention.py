@@ -1,12 +1,13 @@
 import torch
 import torch.nn as nn
-from model import SelfAttention
+from model import AttnVGG
 from dataset import Dataset_prep,partitions
 from torch.utils.data import DataLoader
 import torch.optim as optim
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score
 from main import save_fig,print_report
+
 def collate_fn(batch, target_size=(64, 2442)):
     # Separate the inputs and labels
     inputs, labels = zip(*batch)
@@ -68,8 +69,8 @@ def get_val_loss(dataloader_val,classifier,criterion,device):
 
 def evaluate(device,csv_file):
   root_dir = "C:\\Users\\Minas Petridis\\Desktop\\FSDKaggle2018.audio_train"
-  classifier = SelfAttention()
-  classifier.load_state_dict(torch.load("checkpoint_MLP", weights_only=True,map_location=device))
+  classifier = AttnVGG()
+  classifier.load_state_dict(torch.load("checkpoint_attention", weights_only=True,map_location=device))
   classifier=classifier.to(device)
   classifier.eval()
   dataloader = DataLoader(Dataset_prep(csv_file, root_dir, "t"), collate_fn=collate_fn)
@@ -79,42 +80,60 @@ def evaluate(device,csv_file):
   # since we're not training, we don't need to calculate the gradients for our outputs
   print_report(dataloader,classifier,device)
 
-
-def train():
+def train(epochs):
         
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    dataset_csv="train_post_competition.csv"
+    # partitions("train_post_competition.csv",3)
+
     csv_file = "partitions/partition_1.csv"
     # root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
-    root_dir = "E:\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
+    root_dir = "C:\\Users\\petri\\Downloads\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
 
     dataset = Dataset_prep(csv_file, root_dir, "train")
     train_loader = Dataset_prep(csv_file, root_dir, split="val")
-    sa = SelfAttention(d=2442, d_q=2, d_k=2, d_v=4)
-    criterion = nn.CrossEntropyLoss(ignore_index=0)
-    optimizer = optim.Adam(sa.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
+
     dataloader = DataLoader(dataset, batch_size=180, shuffle=True,collate_fn=collate_fn)
     dataloader_val = DataLoader(train_loader, batch_size=180, shuffle=False,collate_fn=collate_fn)
-    sa.to(device)
+
+    model = AttnVGG(num_classes=41, normalize_attn=True)
+    model=model.to(device)
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(),lr=0.01)
+
+    data,label=next(iter(dataloader))
+    print(data.shape)
+    print(label.shape)
+    print(model)
     train_losses = []
     val_losses = []
     train_accuracies = []
     val_accuracies = []
-    for epoch in tqdm(range(5)):
-        sa.train()
-        for inputs, labels in dataloader:
-            inputs, labels = inputs.to(device), labels.to(device)
-            optimizer.zero_grad()
-            outputs = sa(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-        print(f"Epoch: {epoch+1}, Loss: {loss.item()}")
-        train_losses.append(loss.detach().item())
-        val_losses.append(get_val_loss(dataloader_val,sa,criterion,device))
-        train_accuracies.append(calculate_accuracy(dataloader,sa,device))
-        val_accuracies.append(calculate_accuracy(dataloader_val,sa,device))
+    model.train()
+    # for epoch in tqdm(range(epochs)):
+    #     model.train()
+    #     for inputs, labels in dataloader:
 
+    #         # labels = nn.functional.one_hot(labels, num_classes=41).float()
+    #         inputs, labels = inputs.to(device), labels.to(device)
+    #         optimizer.zero_grad()
+
+    #         # inputs = inputs
+    #         # print(inputs.shape)
+    #         outputs = model(inputs)
+    #         loss = criterion(outputs, labels)
+
+    #         loss.backward()
+    #         optimizer.step()
+    #     train_losses.append(loss.detach().item())
+    #     val_losses.append(get_val_loss(dataloader_val,model,criterion,device))
+    #     train_accuracies.append(calculate_accuracy(dataloader,model,device))
+    #     val_accuracies.append(calculate_accuracy(dataloader_val,model,device))
+
+    # torch.save(model.state_dict(), "./checkpoint_attention")
+    # save_fig("self_attention_progress",train_losses,val_losses,train_accuracies,val_accuracies)
+
+    
 if __name__=="__main__":
-    train()
+    train(4)

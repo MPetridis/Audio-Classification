@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
-from dataset import Dataset_prep,partitions
+from dataset import Dataset_prep
 from torch.utils.data import DataLoader
 from main import save_fig,print_report
 
@@ -30,6 +30,7 @@ def collate_fn(batch, target_size=(64, 2442)):
     labels = torch.tensor(labels, dtype=torch.long)
 
     return inputs, labels
+
 def train(epochs,batch_size):
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
