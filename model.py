@@ -67,14 +67,13 @@ class MLP(nn.Module):
     # First fully connected layer
     self.fc1 = nn.Linear(64 * 2442, 512)
     # Activation function
-    self.relu = nn.ReLU()
-    # Second fully connected layer (output layer)
+    # self.relu = nn.ReLU()
+    # # Second fully connected layer (output layer)
     self.fc2 = nn.Linear(512, 41)
 
   def forward(self, x):
     x = x.view(x.size(0), -1)  # Flatten input
-    x = self.fc1(x)            # Apply first fully connected layer
-    x = self.relu(x)           # Apply activation
+    x = self.fc1(x)            # Apply first fully connected layer          # Apply activation
     out = self.fc2(x)          # Apply second fully connected layer
     return out
   
@@ -110,9 +109,12 @@ class AttentionBlock(nn.Module):
     N, C, W, H = l.size()
     l_ = self.W_l(l)
     g_ = self.W_g(g)
-    if self.up_factor > 1:
-        g_ = F.interpolate(g_, scale_factor=self.up_factor, mode='bilinear', align_corners=False)
-    c = self.phi(F.relu(l_ + g_)) # batch_sizex1xWxH
+    if l_.size(2) != g_.size(2) or l_.size(3) != g_.size(3):
+      g_ = F.interpolate(g_, size=(l_.size(2), l_.size(3)), mode='bilinear', align_corners=False)
+    c = self.phi(F.relu(l_ + g_))
+    # if self.up_factor > 1:
+    #     g_ = F.interpolate(g_, scale_factor=self.up_factor, mode='bilinear', align_corners=False)
+    # c = self.phi(F.relu(l_ + g_)) # batch_sizex1xWxH
     
     # compute attn map
     if self.normalize_attn:
@@ -143,16 +145,16 @@ class AttnVGG(nn.Module):
       self.conv_block2 = nn.Sequential(*list(net.features.children())[7:13])
       self.conv_block3 = nn.Sequential(*list(net.features.children())[14:23])
       self.conv_block4 = nn.Sequential(*list(net.features.children())[24:33])
-      self.conv_block5 = nn.Sequential(*list(net.features.children())[34:43])
-      self.pool = nn.AvgPool2d(7, stride=1)
+      # self.conv_block5 = nn.Sequential(*list(net.features.children())[34:43])
+      self.pool = nn.AdaptiveAvgPool2d((1,1))
       self.dpt = None
       if dropout is not None:
           self.dpt = nn.Dropout(dropout)
-      self.cls = nn.Linear(in_features=512+512+256, out_features=num_classes, bias=True)
+      self.cls = nn.Linear(in_features=896, out_features=num_classes, bias=True)
       
       # initialize the attention blocks defined above
-      self.attn1 = AttentionBlock(256, 512, 256, 4, normalize_attn=normalize_attn)
-      self.attn2 = AttentionBlock(512, 512, 256, 2, normalize_attn=normalize_attn)
+      self.attn1 = AttentionBlock(128, 512, 256, 4, normalize_attn=normalize_attn)
+      self.attn2 = AttentionBlock(256, 512, 256, 2, normalize_attn=normalize_attn)
       
       
       self.reset_parameters(self.cls)
@@ -179,13 +181,13 @@ class AttnVGG(nn.Module):
       pool3 = F.max_pool2d(block3, 2, 2) # /8
       block4 = self.conv_block4(pool3)   # /8
       pool4 = F.max_pool2d(block4, 2, 2) # /16
-      block5 = self.conv_block5(pool4)   # /16
-      pool5 = F.max_pool2d(block5, 2, 2) # /32
-      N, __, __, __ = pool5.size()
+      # block5 = self.conv_block5(pool4)   # /16
+      # pool5 = F.max_pool2d(block5, 2, 2) # /32
+      N, __, __, __ = pool4.size()
       
-      g = self.pool(pool5).view(N,512)
-      a1, g1 = self.attn1(pool3, pool5)
-      a2, g2 = self.attn2(pool4, pool5)
+      g = self.pool(pool4).view(pool4.size(0), -1)
+      a1, g1 = self.attn1(pool2, pool4)
+      a2, g2 = self.attn2(pool3, pool4)
       g_hat = torch.cat((g,g1,g2), dim=1) # batch_size x C
       if self.dpt is not None:
           g_hat = self.dpt(g_hat)

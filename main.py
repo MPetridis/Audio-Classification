@@ -105,7 +105,8 @@ def print_report(dataloader,classifier,device):
     # calculate outputs by running images through the network
     outputs = classifier(images)
     # the class with the highest energy is what we choose as prediction
-    _, predicted = torch.max(outputs, 1)
+    # _, predicted = torch.max(outputs, 1) #for everything else
+    _, predicted = torch.max(outputs[0], 1) #for self-attention
     all_pred.extend(predicted.cpu().numpy())
     all_true.extend(labels.cpu().numpy())
     

@@ -8,7 +8,7 @@ from tqdm import tqdm
 from sklearn.metrics import accuracy_score
 from main import save_fig,print_report
 
-def collate_fn(batch, target_size=(64, 2442)):
+def collate_fn(batch, target_size=(255, 255)):
     # Separate the inputs and labels
     inputs, labels = zip(*batch)
 
@@ -39,10 +39,10 @@ def calculate_accuracy(dataloader,classifier,device):
     all_labels = []
     classifier.eval()
     for inputs, labels in dataloader:
-        inputs = inputs.to(device)
+        inputs = inputs.cuda()
         # inputs = inputs
         outputs = classifier(inputs)
-        _, predicted = torch.max(outputs, 1)
+        _, predicted = torch.max(outputs[0], 1)
         all_preds.extend(predicted.cpu().numpy())
         all_labels.extend(labels.cpu().numpy())
 
@@ -57,21 +57,21 @@ def get_val_loss(dataloader_val,classifier,criterion,device):
     val_loss = 0
     n = 0
     for inputs, labels in dataloader_val:
-        labels = labels.to(device)
+        labels = labels.cuda()
         # labels = nn.functional.one_hot(labels, num_classes=41).float()
-        inputs = inputs.to(device)
+        inputs = inputs.cuda()
         # inputs = inputs
 
         outputs = classifier(inputs)
-        val_loss += criterion(outputs, labels)
+        val_loss += criterion(outputs[0], labels)
         n += 1
     return (val_loss/n).detach().item()
 
 def evaluate(device,csv_file):
-  root_dir = "C:\\Users\\Minas Petridis\\Desktop\\FSDKaggle2018.audio_train"
-  classifier = AttnVGG()
+  root_dir = "E:\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
+  classifier = AttnVGG(num_classes=41, normalize_attn=False)
   classifier.load_state_dict(torch.load("checkpoint_attention", weights_only=True,map_location=device))
-  classifier=classifier.to(device)
+  classifier=classifier.cuda()
   classifier.eval()
   dataloader = DataLoader(Dataset_prep(csv_file, root_dir, "t"), collate_fn=collate_fn)
 
@@ -88,16 +88,17 @@ def train(epochs):
 
     csv_file = "partitions/partition_1.csv"
     # root_dir = "C:\\Users\\petri\\Downloads\\ESC-50-master\\audio"
-    root_dir = "C:\\Users\\petri\\Downloads\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
+    root_dir = "E:\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
 
     dataset = Dataset_prep(csv_file, root_dir, "train")
     train_loader = Dataset_prep(csv_file, root_dir, split="val")
 
-    dataloader = DataLoader(dataset, batch_size=180, shuffle=True,collate_fn=collate_fn)
-    dataloader_val = DataLoader(train_loader, batch_size=180, shuffle=False,collate_fn=collate_fn)
+    dataloader = DataLoader(dataset, batch_size=35, shuffle=True,collate_fn=collate_fn)
+    dataloader_val = DataLoader(train_loader, batch_size=35, shuffle=False,collate_fn=collate_fn)
 
-    model = AttnVGG(num_classes=41, normalize_attn=True)
-    model=model.to(device)
+    model = AttnVGG(num_classes=41, normalize_attn=False)
+    # model.load_state_dict(torch.load("checkpoint_attention", weights_only=True,map_location=device))
+    model=model.cuda()
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(),lr=0.01)
@@ -110,30 +111,35 @@ def train(epochs):
     val_losses = []
     train_accuracies = []
     val_accuracies = []
+    
     model.train()
-    # for epoch in tqdm(range(epochs)):
-    #     model.train()
-    #     for inputs, labels in dataloader:
+    for epoch in tqdm(range(epochs)):
+        model.train()
+        for inputs, labels in dataloader:
 
-    #         # labels = nn.functional.one_hot(labels, num_classes=41).float()
-    #         inputs, labels = inputs.to(device), labels.to(device)
-    #         optimizer.zero_grad()
+            # labels = nn.functional.one_hot(labels, num_classes=41).float()
+            inputs, labels = inputs.cuda(), labels.cuda()
+            optimizer.zero_grad()
 
-    #         # inputs = inputs
-    #         # print(inputs.shape)
-    #         outputs = model(inputs)
-    #         loss = criterion(outputs, labels)
+            # inputs = inputs
+            # print(inputs.shape)
+            outputs = model(inputs)
+            loss = criterion(outputs[0], labels)
 
-    #         loss.backward()
-    #         optimizer.step()
-    #     train_losses.append(loss.detach().item())
-    #     val_losses.append(get_val_loss(dataloader_val,model,criterion,device))
-    #     train_accuracies.append(calculate_accuracy(dataloader,model,device))
-    #     val_accuracies.append(calculate_accuracy(dataloader_val,model,device))
+            loss.backward()
+            optimizer.step()
+        train_losses.append(loss.detach().item())
+        val_losses.append(get_val_loss(dataloader_val,model,criterion,device))
+        train_accuracies.append(calculate_accuracy(dataloader,model,device))
+        val_accuracies.append(calculate_accuracy(dataloader_val,model,device))
+        torch.cuda.empty_cache()
+        # torch.cuda.ipc_collect()
 
-    # torch.save(model.state_dict(), "./checkpoint_attention")
-    # save_fig("self_attention_progress",train_losses,val_losses,train_accuracies,val_accuracies)
+    torch.save(model.state_dict(), "./checkpoint_attention")
+    save_fig("self_attention_progress",train_losses,val_losses,train_accuracies,val_accuracies)
 
     
 if __name__=="__main__":
-    train(4)
+    # train(8)
+    for i in range(3):
+      evaluate('cuda',f"partitions/partition_{i+1}.csv")
