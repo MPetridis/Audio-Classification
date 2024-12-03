@@ -109,12 +109,13 @@ class AttentionBlock(nn.Module):
     N, C, W, H = l.size()
     l_ = self.W_l(l)
     g_ = self.W_g(g)
-    if l_.size(2) != g_.size(2) or l_.size(3) != g_.size(3):
-      g_ = F.interpolate(g_, size=(l_.size(2), l_.size(3)), mode='bilinear', align_corners=False)
-    c = self.phi(F.relu(l_ + g_))
+    # if l_.shape[2] != g_.shape[2] or l_.shape[3] != g_.shape[3]:
+    #   g_ = F.interpolate(g_, size=(l_.size(2), l_.size(3)), mode='bilinear', align_corners=False)
+    # c = self.phi(F.relu(l_ + g_))
     # if self.up_factor > 1:
     #     g_ = F.interpolate(g_, scale_factor=self.up_factor, mode='bilinear', align_corners=False)
-    # c = self.phi(F.relu(l_ + g_)) # batch_sizex1xWxH
+    g_ = F.interpolate(g_, size=l_.shape[2:], mode='bilinear', align_corners=False)
+    c = self.phi(F.relu(l_ + g_)) # batch_sizex1xWxH
     
     # compute attn map
     if self.normalize_attn:
@@ -183,7 +184,7 @@ class AttnVGG(nn.Module):
       pool4 = F.max_pool2d(block4, 2, 2) # /16
       # block5 = self.conv_block5(pool4)   # /16
       # pool5 = F.max_pool2d(block5, 2, 2) # /32
-      N, __, __, __ = pool4.size()
+      # N, __, __, __ = pool4.size()
       
       g = self.pool(pool4).view(pool4.size(0), -1)
       a1, g1 = self.attn1(pool2, pool4)

@@ -219,7 +219,7 @@ def fn():
   #       break  # Only inspect the first batch
 
 def data_drift_detect_kmt(csv_file1, csv_file2):
-  root_dir = "E:\\FSDKaggle2018.audio_train"
+  root_dir = "E:\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
   
   # Load datasets
   dataset1 = Dataset_prep(csv_file1, root_dir, "t")
@@ -228,6 +228,7 @@ def data_drift_detect_kmt(csv_file1, csv_file2):
 
   data1 = preprocess_data(dataset1)  # Adjust length as needed
   data2 = preprocess_data(dataset2)
+  print(data1.shape)
   # Drift detection using KSTest
   # pca = PCA(n_components=50)
   # data1 = pca.fit_transform(data1)
@@ -242,7 +243,7 @@ def data_drift_detect_kmt(csv_file1, csv_file2):
   return sum(dd)/len(dd)
 
 def data_drift_detect_emd(csv_file1, csv_file2):
-  root_dir = "E:\\FSDKaggle2018.audio_train"
+  root_dir = "E:\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
   
   # Load datasets
   dataset1 = Dataset_prep(csv_file1, root_dir, "t")
@@ -267,7 +268,6 @@ def data_drift_detect_emd(csv_file1, csv_file2):
 def preprocess_data(dataset):
   max_height = max([waveform.size(1) for waveform, _ in dataset])
   max_width = max([waveform.size(2) for waveform, _ in dataset])
-
   padded_data=[]
   for waveform, _  in dataset:
       pad_height = max_height - waveform.size(1)
@@ -287,6 +287,6 @@ if __name__=="__main__":
   # train(bs=300,n_e=100,device=device)
   # for i in range(3):
   #   evaluate(device,f"partitions/partition_{i+1}.csv")
-  fn()
-  # print(data_drift_detect_kmt("partitions/partition_1.csv","partitions/partition_2.csv"))
+  # fn()
+  print(data_drift_detect_kmt("partitions/partition_1.csv","partitions/partition_2.csv"))
   # print(data_drift_detect_emd("partitions/partition_1.csv","partitions/partition_2.csv"))

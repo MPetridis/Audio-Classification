@@ -97,7 +97,7 @@ def train(epochs):
     dataloader_val = DataLoader(train_loader, batch_size=35, shuffle=False,collate_fn=collate_fn)
 
     model = AttnVGG(num_classes=41, normalize_attn=False)
-    # model.load_state_dict(torch.load("checkpoint_attention", weights_only=True,map_location=device))
+    # model.load_state_dict(torch.load("checkpoint_attention", weights_only=True,map_location=device)) #retraining
     model=model.cuda()
 
     criterion = nn.CrossEntropyLoss()
@@ -140,6 +140,8 @@ def train(epochs):
 
     
 if __name__=="__main__":
-    # train(8)
-    for i in range(3):
-      evaluate('cuda',f"partitions/partition_{i+1}.csv")
+    train(8)
+
+    # #evaluate
+    # for i in range(3):
+    #   evaluate('cuda',f"partitions/partition_{i+1}.csv")
