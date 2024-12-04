@@ -122,12 +122,10 @@ def save_features_as_tensors():
   torch.save(d3, "partition_3_features.pt")
   del d3
 
-if __name__ =="__main__":
-  # print(torch.load("partition_1_features.pt").shape)
-  # print(torch.load("partition_2_features.pt").shape)
-  # print(torch.load("partition_3_features.pt").shape)
-  data1=torch.load("partition_1_features.pt")
-  data2=torch.load("partition_2_features.pt")
+
+def km_test(file_1,file_2,device):
+  data1=torch.load(file_1,map_location=device,weights_only=True)
+  data2=torch.load(file_2,map_location=device,weights_only=True)
   data1=reshaped_data = data1.reshape(-1, data1.shape[-1]).detach().cpu().numpy()
   data2=reshaped_data = data2.reshape(-1, data2.shape[-1]).detach().cpu().numpy()
   detector = KSTest()
@@ -136,4 +134,8 @@ if __name__ =="__main__":
     _=detector.fit(X=wf)
     drift_score,_ = detector.compare(X=data2[index])[0]
     dd.append(drift_score)
-  print( sum(dd)/len(dd))
+  return sum(dd)/len(dd)
+
+if __name__ =="__main__":
+  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+  print(km_test("partition_1_features.pt","partition_2_features.pt",device))

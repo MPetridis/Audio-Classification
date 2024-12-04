@@ -219,7 +219,8 @@ def fn():
   #       break  # Only inspect the first batch
 
 def data_drift_detect_kmt(csv_file1, csv_file2):
-  root_dir = "E:\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
+  root_dir = "C:\\Users\\petri\\Downloads\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
+  # root_dir = "E:\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
   
   # Load datasets
   dataset1 = Dataset_prep(csv_file1, root_dir, "t")
@@ -288,5 +289,5 @@ if __name__=="__main__":
   # for i in range(3):
   #   evaluate(device,f"partitions/partition_{i+1}.csv")
   # fn()
-  print(data_drift_detect_kmt("partitions/partition_1.csv","partitions/partition_2.csv"))
+  print(data_drift_detect_kmt("partitions/partition_1.csv","partitions/partition_3.csv"))
   # print(data_drift_detect_emd("partitions/partition_1.csv","partitions/partition_2.csv"))
