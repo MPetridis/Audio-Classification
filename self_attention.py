@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from model import AttnVGG
+from model import Attn
 from dataset import Dataset_prep,partitions
 from torch.utils.data import DataLoader
 import torch.optim as optim
@@ -8,7 +8,7 @@ from tqdm import tqdm
 from sklearn.metrics import accuracy_score
 from main import save_fig,print_report
 
-def collate_fn(batch, target_size=(255, 255)):
+def collate_fn(batch, target_size=(64,2442)):
     # Separate the inputs and labels
     inputs, labels = zip(*batch)
 
@@ -42,7 +42,7 @@ def calculate_accuracy(dataloader,classifier,device):
         inputs = inputs.cuda()
         # inputs = inputs
         outputs = classifier(inputs)
-        _, predicted = torch.max(outputs[0], 1)
+        _, predicted = torch.max(outputs, 1)
         all_preds.extend(predicted.cpu().numpy())
         all_labels.extend(labels.cpu().numpy())
 
@@ -63,13 +63,13 @@ def get_val_loss(dataloader_val,classifier,criterion,device):
         # inputs = inputs
 
         outputs = classifier(inputs)
-        val_loss += criterion(outputs[0], labels)
+        val_loss += criterion(outputs, labels)
         n += 1
     return (val_loss/n).detach().item()
 
 def evaluate(device,csv_file):
   root_dir = "E:\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
-  classifier = AttnVGG(num_classes=41, normalize_attn=False)
+  classifier = Attn()
   classifier.load_state_dict(torch.load("checkpoint_attention", weights_only=True,map_location=device))
   classifier=classifier.cuda()
   classifier.eval()
@@ -93,10 +93,10 @@ def train(epochs):
     dataset = Dataset_prep(csv_file, root_dir, "train")
     train_loader = Dataset_prep(csv_file, root_dir, split="val")
 
-    dataloader = DataLoader(dataset, batch_size=35, shuffle=True,collate_fn=collate_fn)
-    dataloader_val = DataLoader(train_loader, batch_size=35, shuffle=False,collate_fn=collate_fn)
+    dataloader = DataLoader(dataset, batch_size=64, shuffle=True,collate_fn=collate_fn)
+    dataloader_val = DataLoader(train_loader, batch_size=64, shuffle=False,collate_fn=collate_fn)
 
-    model = AttnVGG(num_classes=41, normalize_attn=False)
+    model =Attn()
     # model.load_state_dict(torch.load("checkpoint_attention", weights_only=True,map_location=device)) #retraining
     model=model.cuda()
 
@@ -124,7 +124,7 @@ def train(epochs):
             # inputs = inputs
             # print(inputs.shape)
             outputs = model(inputs)
-            loss = criterion(outputs[0], labels)
+            loss = criterion(outputs, labels)
 
             loss.backward()
             optimizer.step()
@@ -140,7 +140,7 @@ def train(epochs):
 
     
 if __name__=="__main__":
-    train(8)
+    train(30)
 
     # #evaluate
     # for i in range(3):
