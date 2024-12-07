@@ -1,11 +1,11 @@
-
 from torchvision.models.feature_extraction import create_feature_extractor
 import torch
+import torch.nn as nn
 from model import Attn
 from model import MLP
 from dataset import Dataset_prep
 from torch.utils.data import DataLoader
-from frouros.detectors.data_drift import KSTest,EMD
+from frouros.detectors.data_drift import KSTest,EMD,EnergyDistance
 from tqdm import tqdm
 
 class Extractor(torch.nn.Module):
@@ -13,18 +13,20 @@ class Extractor(torch.nn.Module):
         super(Extractor, self).__init__()
         # Create feature extractors for the specified nodes
         self.mlp_extractor = create_feature_extractor(mlp, mlp_nodes)
+        self.linear_transform=nn.Linear(1221, 156288)
         self.attn_extractor = create_feature_extractor(ant, attn_nodes)
+        print(self.attn_extractor)
         
         # print(self.attn_extractor)  # Directly use AttnVGG model
 
     def forward(self, x):
         x = x.view(x.size(0), -1)  # Flatten input for MLP
         mlp_features = self.mlp_extractor(x)
-        x = x.view(x.size(0), -1)  # Flatten for attention
+        x = self.linear_transform(mlp_features["fc1"])
+        x = x.view( x.size(0),-1)  # Flatten for attention
         x=self.attn_extractor(x)
         out = x['attention'].view(x['attention'].size(0), -1)  # Directly use the model
         return out
-
 
 def pad_data(data):
   max_len = max(tensor.size(0) for tensor in data)
@@ -60,7 +62,6 @@ def collate_fn(batch, target_size=(64, 2442)):
 
     return inputs, labels
 
-
 def get_features(model,dataloader,device):
   features=[]
   for inputs,labels in tqdm(dataloader):
@@ -69,7 +70,6 @@ def get_features(model,dataloader,device):
     
     features.append(attn_fc1)
   return features
-
 
 def save_features_as_tensors():
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -96,23 +96,22 @@ def save_features_as_tensors():
   root_dir = "E:\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train" 
   extractor = Extractor(mlp, ant, mlp_nodes, attn_nodes).to(device)
   dataset = Dataset_prep(csv_file1, root_dir, "t")
-  dataloader = DataLoader(dataset, batch_size=127, shuffle=True,collate_fn=collate_fn)
+  dataloader = DataLoader(dataset, batch_size=128, shuffle=True,collate_fn=collate_fn)
   d1=pad_data(get_features(extractor,dataloader,device))
   torch.save(d1, "partition_1_features.pt")
   del d1
   torch.cuda.empty_cache()
   dataset = Dataset_prep(csv_file2, root_dir, "t")
-  dataloader = DataLoader(dataset, batch_size=127, shuffle=True,collate_fn=collate_fn)
+  dataloader = DataLoader(dataset, batch_size=128, shuffle=True,collate_fn=collate_fn)
   d2=pad_data(get_features(extractor,dataloader,device))
   torch.save(d2, "partition_2_features.pt")
   del d2
   torch.cuda.empty_cache()
   dataset = Dataset_prep(csv_file3, root_dir, "t")
-  dataloader = DataLoader(dataset, batch_size=127, shuffle=True,collate_fn=collate_fn)
+  dataloader = DataLoader(dataset, batch_size=128, shuffle=True,collate_fn=collate_fn)
   d3=pad_data(get_features(extractor,dataloader,device))
   torch.save(d3, "partition_3_features.pt")
   del d3
-
 
 def km_test(file_1,file_2,device):
   data1=torch.load(file_1,map_location=device,weights_only=True)
@@ -126,6 +125,21 @@ def km_test(file_1,file_2,device):
     drift_score,_ = detector.compare(X=data2[index])
     dd.append(drift_score[1])
   return sum(dd)/len(dd)
+
+def emd_detector(file_1,file_2,device):
+  data1=torch.load(file_1,map_location=device,weights_only=True)
+  data2=torch.load(file_2,map_location=device,weights_only=True)
+  data1=data1.reshape(-1, data1.shape[-1]).detach().cpu().numpy()
+  data2=data2.reshape(-1, data2.shape[-1]).detach().cpu().numpy()
+  detector = EMD()
+  dd=[]
+  for index,wf in enumerate(data1):
+    _=detector.fit(X=wf)
+    drift_score= detector.compare(X=data2[index])[0]
+    dd.append(drift_score.distance)
+  
+  return sum(dd)/len(dd)
+
 
 if __name__ =="__main__":
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

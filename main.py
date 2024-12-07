@@ -105,8 +105,7 @@ def print_report(dataloader,classifier,device):
     # calculate outputs by running images through the network
     outputs = classifier(images)
     # the class with the highest energy is what we choose as prediction
-    # _, predicted = torch.max(outputs, 1) #for everything else
-    _, predicted = torch.max(outputs[0], 1) #for self-attention
+    _, predicted = torch.max(outputs, 1) #for everything else
     all_pred.extend(predicted.cpu().numpy())
     all_true.extend(labels.cpu().numpy())
     
@@ -218,17 +217,8 @@ def fn():
   #       print(f"Labels shape: {labels.shape}")
   #       break  # Only inspect the first batch
 
-def data_drift_detect_kmt(csv_file1, csv_file2):
-  root_dir = "C:\\Users\\petri\\Downloads\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
-  # root_dir = "E:\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
-  
-  # Load datasets
-  dataset1 = Dataset_prep(csv_file1, root_dir, "t")
-  dataset2 = Dataset_prep(csv_file2, root_dir, "t")
-  
+def data_drift_detect_kst(data1, data2):
 
-  data1 = preprocess_data(dataset1)  # Adjust length as needed
-  data2 = preprocess_data(dataset2)
   print(data1.shape)
   # Drift detection using KSTest
   # pca = PCA(n_components=50)
@@ -243,16 +233,11 @@ def data_drift_detect_kmt(csv_file1, csv_file2):
   
   return sum(dd)/len(dd)
 
-def data_drift_detect_emd(csv_file1, csv_file2):
-  root_dir = "E:\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
-  
-  # Load datasets
-  dataset1 = Dataset_prep(csv_file1, root_dir, "t")
-  dataset2 = Dataset_prep(csv_file2, root_dir, "t")
-  
+def data_drift_detect_emd(d1, d2):
 
-  data1 = preprocess_data(dataset1)  # Adjust length as needed
-  data2 = preprocess_data(dataset2)
+
+  data1 = d1  # Adjust length as needed
+  data2 = d2
   # Drift detection using KSTest
   # pca = PCA(n_components=50)
   # data1 = pca.fit_transform(data1)
@@ -267,6 +252,7 @@ def data_drift_detect_emd(csv_file1, csv_file2):
   return sum(dd)/len(dd)
 
 def preprocess_data(dataset):
+  
   max_height = max([waveform.size(1) for waveform, _ in dataset])
   max_width = max([waveform.size(2) for waveform, _ in dataset])
   padded_data=[]
@@ -289,5 +275,12 @@ if __name__=="__main__":
   # for i in range(3):
   #   evaluate(device,f"partitions/partition_{i+1}.csv")
   # fn()
-  print(data_drift_detect_kmt("partitions/partition_1.csv","partitions/partition_3.csv"))
-  # print(data_drift_detect_emd("partitions/partition_1.csv","partitions/partition_2.csv"))
+  root_dir = "E:\\FSDKaggle2018.audio_train\\FSDKaggle2018.audio_train"
+  
+  # Load datasets
+  dataset1 = Dataset_prep("partitions/partition_1.csv", root_dir, "t")
+  dataset2 = Dataset_prep("partitions/partition_2.csv", root_dir, "t")
+  data1 = preprocess_data(dataset1)  # Adjust length as needed
+  data2 = preprocess_data(dataset2)
+  print("KST= ",data_drift_detect_kst(data1,data2))
+  print("EMD= ",data_drift_detect_emd(data1,data2))

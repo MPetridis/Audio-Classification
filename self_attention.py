@@ -140,8 +140,8 @@ def train(epochs):
 
     
 if __name__=="__main__":
-    train(30)
+    # train(30)
 
-    # #evaluate
-    # for i in range(3):
-    #   evaluate('cuda',f"partitions/partition_{i+1}.csv")
+    #evaluate
+    for i in range(3):
+      evaluate('cuda',f"partitions/partition_{i+1}.csv")

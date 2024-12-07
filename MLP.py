@@ -156,7 +156,7 @@ if __name__ =="__main__":
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   # print(device)
 
-  train(50,180)
+  train(50,128)
 
   # for i in range(3):
   #   evaluate(device,f"partitions/partition_{i+1}.csv")
