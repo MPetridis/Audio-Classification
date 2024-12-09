@@ -5,7 +5,7 @@ from model import Attn
 from model import MLP
 from dataset import Dataset_prep
 from torch.utils.data import DataLoader
-from frouros.detectors.data_drift import KSTest,EMD,EnergyDistance
+from frouros.detectors.data_drift import KSTest,EMD,EnergyDistance,BWSTest,KuiperTest,HellingerDistance,KL
 from tqdm import tqdm
 
 class Extractor(torch.nn.Module):
@@ -27,6 +27,8 @@ class Extractor(torch.nn.Module):
         x=self.attn_extractor(x)
         out = x['attention'].view(x['attention'].size(0), -1)  # Directly use the model
         return out
+
+
 
 def pad_data(data):
   max_len = max(tensor.size(0) for tensor in data)
@@ -133,7 +135,75 @@ def emd_detector(file_1,file_2,device):
   data2=data2.reshape(-1, data2.shape[-1]).detach().cpu().numpy()
   detector = EMD()
   dd=[]
-  for index,wf in enumerate(data1):
+  for index,wf in tqdm(enumerate(data1)):
+    _=detector.fit(X=wf)
+    drift_score= detector.compare(X=data2[index])[0]
+    dd.append(drift_score.distance)
+  
+  return sum(dd)/len(dd)
+
+def energy_Distance(file_1,file_2,device):
+  data1=torch.load(file_1,map_location=device,weights_only=True)
+  data2=torch.load(file_2,map_location=device,weights_only=True)
+  data1=data1.reshape(-1, data1.shape[-1]).detach().cpu().numpy()
+  data2=data2.reshape(-1, data2.shape[-1]).detach().cpu().numpy()
+  detector = EnergyDistance()
+  dd=[]
+  for index,wf in tqdm(enumerate(data1)):
+    _=detector.fit(X=wf)
+    drift_score= detector.compare(X=data2[index])[0]
+    dd.append(drift_score.distance)
+  
+  return sum(dd)/len(dd)
+
+def data_drift_bwsTest(file_1,file_2,device):
+  data1=torch.load(file_1,map_location=device,weights_only=True)
+  data2=torch.load(file_2,map_location=device,weights_only=True)
+  data1=data1.reshape(-1, data1.shape[-1]).detach().cpu().numpy()
+  data2=data2.reshape(-1, data2.shape[-1]).detach().cpu().numpy()
+  detector = BWSTest()
+  dd=[]
+  for index,wf in tqdm(enumerate(data1)):
+    _=detector.fit(X=wf)
+    drift_score,_ = detector.compare(X=data2[index])
+    dd.append(drift_score[1])
+  return sum(dd)/len(dd)
+
+def data_drift_KuiperTest(file_1,file_2,device):
+  data1=torch.load(file_1,map_location=device,weights_only=True)
+  data2=torch.load(file_2,map_location=device,weights_only=True)
+  data1=data1.reshape(-1, data1.shape[-1]).detach().cpu().numpy()
+  data2=data2.reshape(-1, data2.shape[-1]).detach().cpu().numpy()
+  detector = KuiperTest()
+  dd=[]
+  for index,wf in tqdm(enumerate(data1)):
+    _=detector.fit(X=wf)
+    drift_score,_ = detector.compare(X=data2[index])
+    dd.append(drift_score[1])
+  return sum(dd)/len(dd)
+
+def data_drift_HellingerDistance(file_1,file_2,device):
+  data1=torch.load(file_1,map_location=device,weights_only=True)
+  data2=torch.load(file_2,map_location=device,weights_only=True)
+  data1=data1.reshape(-1, data1.shape[-1]).detach().cpu().numpy()
+  data2=data2.reshape(-1, data2.shape[-1]).detach().cpu().numpy()
+  detector = HellingerDistance(num_bins=20)
+  dd=[]
+  for index,wf in tqdm(enumerate(data1)):
+    _=detector.fit(X=wf)
+    drift_score= detector.compare(X=data2[index])[0]
+    dd.append(drift_score.distance)
+  
+  return sum(dd)/len(dd)
+
+def data_drift_KL(file_1,file_2,device):
+  data1=torch.load(file_1,map_location=device,weights_only=True)
+  data2=torch.load(file_2,map_location=device,weights_only=True)
+  data1=data1.reshape(-1, data1.shape[-1]).detach().cpu().numpy()
+  data2=data2.reshape(-1, data2.shape[-1]).detach().cpu().numpy()
+  detector = KL(num_bins=20)
+  dd=[]
+  for index,wf in tqdm(enumerate(data1)):
     _=detector.fit(X=wf)
     drift_score= detector.compare(X=data2[index])[0]
     dd.append(drift_score.distance)
@@ -141,7 +211,9 @@ def emd_detector(file_1,file_2,device):
   return sum(dd)/len(dd)
 
 
+
 if __name__ =="__main__":
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  print(km_test("partition_1_features.pt","partition_2_features.pt",device))
+  print(data_drift_HellingerDistance("partition_1_features.pt","partition_2_features.pt",device))
+  print(data_drift_HellingerDistance("partition_1_features.pt","partition_3_features.pt",device))
   # save_features_as_tensors()

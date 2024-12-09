@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score
 from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
 from sklearn.metrics import classification_report
-from frouros.detectors.data_drift import KSTest,EMD
+from frouros.detectors.data_drift import KSTest,EMD,EnergyDistance,BWSTest,KuiperTest,HellingerDistance,KL
 
 
 def collate_fn(batch):
@@ -212,24 +212,25 @@ def fn():
   plt.imshow(img, cmap="viridis")
   plt.show()
   print(f"Label: {label}")
-  # for inputs, labels in dataloader:
-  #       print(f"Inputs shape: {inputs.shape}")
-  #       print(f"Labels shape: {labels.shape}")
-  #       break  # Only inspect the first batch
 
 def data_drift_detect_kst(data1, data2):
-
-  print(data1.shape)
-  # Drift detection using KSTest
-  # pca = PCA(n_components=50)
-  # data1 = pca.fit_transform(data1)
-  # data2 = pca.fit_transform(data2)
   detector = KSTest()
   dd=[]
   for index,wf in enumerate(data1):
     _=detector.fit(X=wf)
     drift_score,_ = detector.compare(X=data2[index])[0]
     dd.append(drift_score)
+  
+  return sum(dd)/len(dd)
+
+def data_drift_EnergyDistance(data1, data2):
+
+  detector = EnergyDistance()
+  dd=[]
+  for index,wf in enumerate(data1):
+    _=detector.fit(X=wf)
+    drift_score = detector.compare(X=data2[index])[0]
+    dd.append(drift_score.distance)
   
   return sum(dd)/len(dd)
 
@@ -245,6 +246,46 @@ def data_drift_detect_emd(d1, d2):
   detector = EMD()
   dd=[]
   for index,wf in enumerate(data1):
+    _=detector.fit(X=wf)
+    drift_score= detector.compare(X=data2[index])[0]
+    dd.append(drift_score.distance)
+  
+  return sum(dd)/len(dd)
+
+def data_drift_bwsTest(d1,d2):
+  detector = BWSTest()
+  dd=[]
+  for index,wf in enumerate(data1):
+    _=detector.fit(X=wf)
+    drift_score,_ = detector.compare(X=data2[index])[0]
+    dd.append(drift_score)
+  
+  return sum(dd)/len(dd)
+
+def data_drift_KuiperTest(data1, data2):
+  detector = KuiperTest()
+  dd=[]
+  for index,wf in tqdm(enumerate(data1)):
+    _=detector.fit(X=wf)
+    drift_score,_ = detector.compare(X=data2[index])
+    dd.append(drift_score[1])
+  return sum(dd)/len(dd)
+
+def data_drift_HellingerDistance(data1,data2):
+  detector = HellingerDistance(num_bins=20)
+  dd=[]
+  for index,wf in tqdm(enumerate(data1)):
+    _=detector.fit(X=wf)
+    drift_score= detector.compare(X=data2[index])[0]
+    dd.append(drift_score.distance)
+  
+  return sum(dd)/len(dd)
+
+def data_drift_KL(data1,data2):
+
+  detector = KL(num_bins=20)
+  dd=[]
+  for index,wf in tqdm(enumerate(data1)):
     _=detector.fit(X=wf)
     drift_score= detector.compare(X=data2[index])[0]
     dd.append(drift_score.distance)
@@ -282,5 +323,5 @@ if __name__=="__main__":
   dataset2 = Dataset_prep("partitions/partition_2.csv", root_dir, "t")
   data1 = preprocess_data(dataset1)  # Adjust length as needed
   data2 = preprocess_data(dataset2)
-  print("KST= ",data_drift_detect_kst(data1,data2))
-  print("EMD= ",data_drift_detect_emd(data1,data2))
+  print("kuiper= ",data_drift_KuiperTest(data1,data2))
+  print("KL= ",data_drift_KL(data1,data2))
