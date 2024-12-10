@@ -321,7 +321,9 @@ if __name__=="__main__":
   # Load datasets
   dataset1 = Dataset_prep("partitions/partition_1.csv", root_dir, "t")
   dataset2 = Dataset_prep("partitions/partition_2.csv", root_dir, "t")
+  dataset3 = Dataset_prep("partitions/partition_3.csv", root_dir, "t")
   data1 = preprocess_data(dataset1)  # Adjust length as needed
   data2 = preprocess_data(dataset2)
-  print("kuiper= ",data_drift_KuiperTest(data1,data2))
-  print("KL= ",data_drift_KL(data1,data2))
+  data3 = preprocess_data(dataset3)
+  print("HellingerDistance= ",data_drift_HellingerDistance(data1,data2))
+  print("HellingerDistance= ",data_drift_HellingerDistance(data1,data3))
