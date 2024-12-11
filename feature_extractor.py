@@ -5,7 +5,7 @@ from model import Attn
 from model import MLP
 from dataset import Dataset_prep
 from torch.utils.data import DataLoader
-from frouros.detectors.data_drift import KSTest,EMD,EnergyDistance,BWSTest,KuiperTest,HellingerDistance,KL
+from frouros.detectors.data_drift import KSTest,EMD,EnergyDistance,BWSTest,KuiperTest,HellingerDistance,KL,PSI,HINormalizedComplement
 from tqdm import tqdm
 
 class Extractor(torch.nn.Module):
@@ -186,6 +186,34 @@ def emd_detector(file_1,file_2,device):
   
   return sum(dd)/len(dd)
 
+def PSI_detector(file_1,file_2,device):
+  data1=torch.load(file_1,map_location=device,weights_only=True)
+  data2=torch.load(file_2,map_location=device,weights_only=True)
+  data1=data1.reshape(-1, data1.shape[-1]).detach().cpu().numpy()
+  data2=data2.reshape(-1, data2.shape[-1]).detach().cpu().numpy()
+  detector = PSI(num_bins=20)
+  dd=[]
+  for index,wf in tqdm(enumerate(data1)):
+    _=detector.fit(X=wf)
+    drift_score= detector.compare(X=data2[index])[0]
+    dd.append(drift_score.distance)
+  
+  return sum(dd)/len(dd)
+
+def HINormalizedComplement_detector(file_1,file_2,device):
+  data1=torch.load(file_1,map_location=device,weights_only=True)
+  data2=torch.load(file_2,map_location=device,weights_only=True)
+  data1=data1.reshape(-1, data1.shape[-1]).detach().cpu().numpy()
+  data2=data2.reshape(-1, data2.shape[-1]).detach().cpu().numpy()
+  detector =   HINormalizedComplement(num_bins=20)
+  dd=[]
+  for index,wf in tqdm(enumerate(data1)):
+    _=detector.fit(X=wf)
+    drift_score= detector.compare(X=data2[index])[0]
+    dd.append(drift_score.distance)
+  
+  return sum(dd)/len(dd)
+
 def energy_Distance(file_1,file_2,device):
   data1=torch.load(file_1,map_location=device,weights_only=True)
   data2=torch.load(file_2,map_location=device,weights_only=True)
@@ -194,6 +222,7 @@ def energy_Distance(file_1,file_2,device):
   detector = EnergyDistance()
   dd=[]
   # print(data1.shape) #(3200,32)
+  
   for index,wf in tqdm(enumerate(data1)):
     # print(wf) #(32,0)
     _=detector.fit(X=wf)
@@ -260,8 +289,10 @@ def data_drift_KL(file_1,file_2,device):
 
 
 if __name__ =="__main__":
-  # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  # print("EMD: " ,emd_detector("partition_1_features_re.pt","partition_3_features_re.pt",device))
-  # print("Energy: " ,energy_Distance("partition_1_features_re.pt","partition_3_features_re.pt",device))
-  # # print("Hellinger: " ,data_drift_HellingerDistance("partition_1_features_re.pt","partition_3_features_re.pt",device))
-  save_features_as_tensors()
+  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+  print("HINormalizedComplement: " ,HINormalizedComplement_detector("partition_1_features_re2.pt","partition_2_features_re2.pt",device))
+  print("EMD: " ,emd_detector("partition_1_features_re2.pt","partition_2_features_re2.pt",device))
+  print("Energy: " ,energy_Distance("partition_1_features_re2.pt","partition_2_features_re2.pt",device))
+  print("PSI_detector: " ,PSI_detector("partition_1_features_re2.pt","partition_2_features_re2.pt",device))
+  print("HellingerDistance: " ,data_drift_HellingerDistance("partition_1_features_re2.pt","partition_2_features_re2.pt",device))
+  # save_features_as_tensors()

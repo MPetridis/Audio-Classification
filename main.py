@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score
 from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
 from sklearn.metrics import classification_report
-from frouros.detectors.data_drift import KSTest,EMD,EnergyDistance,BWSTest,KuiperTest,HellingerDistance,KL
+from frouros.detectors.data_drift import KSTest,EMD,EnergyDistance,BWSTest,KuiperTest,HellingerDistance,KL,PSI,HINormalizedComplement
 
 
 def collate_fn(batch):
@@ -308,7 +308,26 @@ def preprocess_data(dataset):
   # reduced_data=padded_data
   return reduced_data
 
+def HINormalizedComplement_detector(data1,data2):
+  detector =   HINormalizedComplement(num_bins=20)
+  dd=[]
+  for index,wf in tqdm(enumerate(data1)):
+    _=detector.fit(X=wf)
+    drift_score= detector.compare(X=data2[index])[0]
+    dd.append(drift_score.distance)
+  
+  return sum(dd)/len(dd)
 
+def PSI_detector(data1,data2):
+
+  detector = PSI(num_bins=20)
+  dd=[]
+  for index,wf in tqdm(enumerate(data1)):
+    _=detector.fit(X=wf)
+    drift_score= detector.compare(X=data2[index])[0]
+    dd.append(drift_score.distance)
+  
+  return sum(dd)/len(dd)
 
 if __name__=="__main__":
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -321,9 +340,11 @@ if __name__=="__main__":
   # Load datasets
   dataset1 = Dataset_prep("partitions/partition_1.csv", root_dir, "t")
   dataset2 = Dataset_prep("partitions/partition_2.csv", root_dir, "t")
-  dataset3 = Dataset_prep("partitions/partition_3.csv", root_dir, "t")
   data1 = preprocess_data(dataset1)  # Adjust length as needed
   data2 = preprocess_data(dataset2)
-  data3 = preprocess_data(dataset3)
-  print("HellingerDistance= ",data_drift_HellingerDistance(data1,data2))
-  print("HellingerDistance= ",data_drift_HellingerDistance(data1,data3))
+  # print("JS= ",JS_detector(data1,data2))
+  # print("EMD= ",data_drift_detect_emd(data1,data2))
+  # print("EnergyDistance= ",data_drift_EnergyDistance(data1,data2))
+  # print("PSI= ",PSI_detector(data1,data2))
+  # print("HellingerDistance= ",data_drift_HellingerDistance(data1,data2))
+  print("HINormalizedComplement= ",HINormalizedComplement_detector(data1,data2))
